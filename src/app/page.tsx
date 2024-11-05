@@ -5,6 +5,7 @@ import { useLoginWithAbstract, useWriteContractSponsored } from "@abstract-found
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 import { getGeneralPaymasterInput } from "viem/zksync";
 import { parseAbi } from "viem";
+import { useState } from 'react';
 
 export default function Home() {
   const { login, logout } = useLoginWithAbstract();
@@ -14,20 +15,9 @@ export default function Home() {
   const { data: transactionReceipt } = useWaitForTransactionReceipt({
     hash: transactionHash,
   });
+  const [paymentAmount, setPaymentAmount] = useState<string>('1'); // Default amount in wei
 
-  const handleContractCall = () => {
-    writeContractSponsored({
-      abi: parseAbi([
-        "function deposit() external payable",
-      ]),
-      address: "0x332843F6DA7e287014eBe3FB77aD8C6E3658cC7F",
-      functionName: "deposit",
-      args: [],
-      value: BigInt(1000000000000000),
-      paymaster: "0x5407B5040dec3D339A9247f3654E59EEccbb6391",
-      paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
-    });
-  };
+  console.log("writeContractSponsored available:", !!writeContractSponsored);
 
   return (
     <div className="relative grid grid-rows-[1fr_auto] min-h-screen p-8 pb-20 sm:p-20 font-[family-name:var(--font-avenue-mono)] bg-black overflow-hidden">
@@ -76,52 +66,82 @@ export default function Home() {
                       </a>
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2 w-full">
-                    <button
-                      className="rounded-full border border-solid border-white/20 transition-colors flex items-center justify-center bg-white/10 text-white gap-2 hover:bg-white/20 text-sm h-10 px-5 font-[family-name:var(--font-roobert)] w-full sm:flex-1"
-                      onClick={logout}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
+                  <div className="flex flex-col gap-4 w-full">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        min="0"
+                        className="flex-1 rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/50 focus:outline-none focus:border-white/40"
+                        placeholder="Amount in wei"
+                      />
+                      <span className="text-white/70">wei</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full">
+                      <button
+                        className="rounded-full border border-solid border-white/20 transition-colors flex items-center justify-center bg-white/10 text-white gap-2 hover:bg-white/20 text-sm h-10 px-5 font-[family-name:var(--font-roobert)] w-full sm:flex-1"
+                        onClick={logout}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                        />
-                      </svg>
-                      Disconnect
-                    </button>
-                    <button
-                      className={`rounded-full border border-solid transition-colors flex items-center justify-center text-white gap-2 text-sm h-10 px-5 font-[family-name:var(--font-roobert)] w-full sm:flex-1
-                        ${!sendTransaction || isPending
-                          ? "bg-gray-500 cursor-not-allowed opacity-50"
-                          : "bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 border-transparent"
-                        }`}
-                      onClick={handleContractCall}
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                          />
+                        </svg>
+                        Disconnect
+                      </button>
+                      <button
+                        className={`rounded-full border border-solid transition-colors flex items-center justify-center text-white gap-2 text-sm h-10 px-5 font-[family-name:var(--font-roobert)] w-full sm:flex-1
+                          ${!sendTransaction || isPending
+                            ? "bg-gray-500 cursor-not-allowed opacity-50"
+                            : "bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 border-transparent"
+                          }`}
+                      onClick={() =>
+                        writeContractSponsored({
+                          abi: parseAbi([
+                            "function receiveEther() external payable",
+                          ]),
+                          address: "0x332843F6DA7e287014eBe3FB77aD8C6E3658cC7F",
+                          functionName: "receiveEther",
+                          args: [],
+                          value: BigInt(paymentAmount),
+                          paymaster:
+                            "0x5407B5040dec3D339A9247f3654E59EEccbb6391",
+                          paymasterInput: getGeneralPaymasterInput({
+                            innerInput: "0x",
+                          }),
+                        })
+                      }
                       disabled={!writeContractSponsored || isPending}
                     >
-                      <svg
-                        className="w-4 h-4 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 10V3L4 14h7v7l9-11h-7z"
-                        />
-                      </svg>
-                      <span className="w-full text-center">Submit tx</span>
-                    </button>
+                        <svg
+                          className="w-4 h-4 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
+                        </svg>
+                        <span className="w-full text-center">
+                          {isPending ? "Confirming..." : "Submit tx"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                   {!!transactionReceipt && (
                     <a
